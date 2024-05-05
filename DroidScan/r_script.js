@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to add the main title to the PDF
     function addMainTitleToPDF(doc, title) {
         doc.setFontSize(20); // Set the title font size
-        doc.text(title, 100, 20);
+        doc.text(title, 110, 20);
     }
 
     // Function to add sections to the PDF
