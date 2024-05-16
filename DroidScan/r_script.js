@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Retrieve the results from sessionStorage
     var results = sessionStorage.getItem('results');
+    var parsedResults;
 
     // Parse the JSON results
-    var parsedResults;
     try {
         parsedResults = JSON.parse(results);
     } catch (error) {
@@ -78,41 +78,123 @@ document.addEventListener('DOMContentLoaded', function() {
         return table;
     }
 
+    // Function to create a tab button
+    function createTabButton(reportId, reportTitle) {
+        var button = document.createElement('button');
+        button.className = 'tablinks';
+        button.textContent = reportTitle;
+        button.onclick = function() {
+            openReport(reportId);
+        };
+        return button;
+    }
+
+    // Function to show a report
+    function openReport(reportId) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName('tabcontent');
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = 'none'; // Hide all tab content
+        }
+        tablinks = document.getElementsByClassName('tablinks');
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(' active', ''); // Remove 'active' class from all tabs
+        }
+
+        // Display the active tab content and set its title
+        var activeContent = document.getElementById(reportId);
+        if (activeContent) {
+            activeContent.style.display = 'block';
+            // Set the title for the active tab content
+            var reportTitle = document.querySelector('.tablinks[data-report-id="' + reportId + '"]').textContent;
+            var titleElement = activeContent.querySelector('.report-title');
+            if (!titleElement) {
+                titleElement = document.createElement('h2');
+                titleElement.className = 'report-title';
+                activeContent.insertBefore(titleElement, activeContent.firstChild);
+            }
+            titleElement.textContent = reportTitle;
+        }
+
+        var activeTab = document.querySelector('.tablinks[data-report-id="' + reportId + '"]');
+        if (activeTab) {
+            activeTab.className += ' active';
+        }
+    }
+
+    // Create tab buttons dynamically based on the parsed results
+    function createTabs(parsedResults) {
+        var tabContainer = document.createElement('div');
+        tabContainer.className = 'tab';
+
+        // Create a button for each report and the overview
+        if (parsedResults.overview) {
+            var overviewButton = createTabButton('overview', 'Overview');
+            overviewButton.setAttribute('data-report-id', 'overview'); // Set a custom attribute for identification
+            tabContainer.appendChild(overviewButton);
+        }
+
+        if (parsedResults.reports && parsedResults.reports.length > 0) {
+            parsedResults.reports.forEach(function(report) {
+                var reportId = 'report-' + report.report_id;
+                var reportButton = createTabButton(reportId, 'Report ' + report.report_id);
+                reportButton.setAttribute('data-report-id', reportId); // Set a custom attribute for identification
+                tabContainer.appendChild(reportButton);
+            });
+        }
+
+        if (parsedResults.sandbox_report) {
+            var sandboxButton = createTabButton('sandbox-report', 'Sandbox Report');
+            sandboxButton.setAttribute('data-report-id', 'sandbox-report'); // Set a custom attribute for identification
+            tabContainer.appendChild(sandboxButton);
+        }
+
+        // Append the tab container to the report-container element
+        var reportContainer = document.querySelector('.tab-container');
+        if (reportContainer) {
+            reportContainer.insertBefore(tabContainer, reportContainer.firstChild);
+        } else {
+            console.error('The tab-container element was not found in the DOM.');
+        }
+
+        // Set the first tab as active
+        if (tabContainer.firstChild) {
+            tabContainer.firstChild.click();
+        }
+    }
+
     // Display the results in a structured format
     if (parsedResults) {
-        // Display Overview
+        createTabs(parsedResults); // Create tabs for the parsed results
+
+        // Append 'overview', 'reports', and 'sandbox-report' content
         if (parsedResults.overview) {
-            var overviewTitle = createTitleElement('Overview');
-            document.getElementById('results').appendChild(overviewTitle);
             var overviewElement = document.createElement('div');
+            overviewElement.className = 'tabcontent';
+            overviewElement.id = 'overview';
             overviewElement.appendChild(createTableFromJson(parsedResults.overview));
-            overviewElement.id = 'overview'; // Assign an ID for the overview section
             document.getElementById('results').appendChild(overviewElement);
         }
 
-        // Display Reports
         if (parsedResults.reports && parsedResults.reports.length > 0) {
-            parsedResults.reports.forEach(function(report, index) {
-                var reportTitle = createTitleElement('Existing Behavioral Analysis Report ' + ': ' + report.report_id);
-                document.getElementById('results').appendChild(reportTitle);
+            parsedResults.reports.forEach(function(report) {
+                var reportId = 'report-' + report.report_id;
                 var reportElement = document.createElement('div');
+                reportElement.className = 'tabcontent';
+                reportElement.id = reportId;
                 reportElement.appendChild(createTableFromJson(report));
-                reportElement.id = 'report-' + report.report_id; // Assign an ID for each report
                 document.getElementById('results').appendChild(reportElement);
             });
         }
 
-        // Display Sandbox Report
         if (parsedResults.sandbox_report) {
-            var sandboxReportTitle = createTitleElement('Sandbox Behavioral Analysis Report');
-            document.getElementById('results').appendChild(sandboxReportTitle);
             var sandboxReportElement = document.createElement('div');
+            sandboxReportElement.className = 'tabcontent';
+            sandboxReportElement.id = 'sandbox-report';
             sandboxReportElement.appendChild(createTableFromJson(parsedResults.sandbox_report));
-            sandboxReportElement.id = 'sandbox-report'; // Assign an ID for the sandbox report
             document.getElementById('results').appendChild(sandboxReportElement);
         }
     } else {
-        // Display an error message if no results are available or if there was an error parsing the JSON
         document.getElementById('results').textContent = 'No results available.';
     }
 
@@ -147,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a button to trigger the PDF download
     var downloadBtn = document.createElement('button');
     downloadBtn.textContent = 'Download as PDF';
+    downloadBtn.className = 'download-btn';
     downloadBtn.addEventListener('click', function() {
         const { jsPDF } = window.jspdf;
         var doc = new jsPDF('landscape');
@@ -154,8 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set the global styles for the tables
         doc.autoTableSetDefaults({
             headStyles: {
-                fillColor: [255, 255, 255], // Lighter header background
-                textColor: [0, 0, 0], // Ensure text color is set to black (or any visible color)
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
                 halign: 'center',
             },
             bodyStyles: {
@@ -191,15 +274,14 @@ document.addEventListener('DOMContentLoaded', function() {
         doc.save('malware-analysis-report.pdf');
     });
 
-    // Append the download button to the body or another element of your choice
-    downloadBtn.style.background = 'linear-gradient(145deg, #7338a0, #924dbf)';
-    downloadBtn.style.color = '#fff';
-    downloadBtn.style.border = 'none';
-    downloadBtn.style.padding = '10px 20px';
-    downloadBtn.style.marginTop = '20px';
-    downloadBtn.style.borderRadius = '5px';
-    downloadBtn.style.cursor = 'pointer';
-    downloadBtn.style.transition = 'background 0.3s ease-in-out';
-    // Append the styled download button to the 'results' element
-    document.getElementById('results').appendChild(downloadBtn);
+    // Append the styled download button to a container within the '.report-container'
+    var reportContainer = document.querySelector('.report-container'); // Select the report container
+    var analysisTable = document.querySelector('.analysis-table');
+    var buttonContainer = reportContainer.insertBefore(document.createElement('div'), reportContainer.firstChild); // Create a new div at the top of the report container
+    buttonContainer.appendChild(downloadBtn); // Append the download button to the new div
+
+    // Call openReport for 'overview' after tabs and content are created
+    if (parsedResults && parsedResults.overview) {
+        openReport('overview');
+    }
 });
