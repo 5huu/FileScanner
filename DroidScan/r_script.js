@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (parsedResults.reports && parsedResults.reports.length > 0) {
             parsedResults.reports.forEach(function(report) {
                 var reportId = 'report-' + report.report_id;
-                var reportButton = createTabButton(reportId, 'Report ' + report.report_id);
+                var reportButton = createTabButton(reportId, 'Sandbox Report: ' + report.report_id);
                 reportButton.setAttribute('data-report-id', reportId); // Set a custom attribute for identification
                 tabContainer.appendChild(reportButton);
             });
